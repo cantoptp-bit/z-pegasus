@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, Volume2, ChevronDown, Shield, MessageSquare, Phone, FileText, Globe, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PegasusBackground from './components/PegasusBackground';
@@ -23,17 +23,56 @@ export default function App() {
   const [isEstablished, setIsEstablished] = useState(false);
   const [arrowOpacity, setArrowOpacity] = useState(1);
   const [hudOpacity, setHudOpacity] = useState(1);
+  const [logoOpacity, setLogoOpacity] = useState(1);
+
+  const projectInfoRef = useRef<HTMLElement | null>(null);
+  const [projectInfoInView, setProjectInfoInView] = useState(false);
+
+  const logoUrl = useMemo(
+    () => new URL('../assets/pegasus-transparent.png', import.meta.url).toString(),
+    [],
+  );
 
   useEffect(() => {
     const handleScroll = () => {
       // Fade out over the first 300px of scrolling
-      const opacity = Math.max(0, 1 - window.scrollY / 300);
+      // Slower fade for a more cinematic transition.
+      const hudFadeDistance = 700;
+      const logoFadeDistance = 900;
+
+      const hudT = Math.min(window.scrollY / hudFadeDistance, 1);
+      const opacity = Math.max(0, 1 - hudT);
+
+      const logoT = Math.min(window.scrollY / logoFadeDistance, 1);
+      const logo = Math.max(0, 1 - logoT);
+
       setArrowOpacity(opacity);
       setHudOpacity(opacity);
+      setLogoOpacity(logo);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = projectInfoRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setProjectInfoInView(Boolean(entry?.isIntersecting));
+      },
+      {
+        // Default root (null) uses the browser viewport / window scroll.
+        threshold: 0.15,
+        rootMargin: '0px 0px -15% 0px',
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -63,7 +102,7 @@ export default function App() {
       setDevProgress(0);
       let start: number | null = null;
       const duration = 12000; // Slower counting (12 seconds)
-      const target = 8;
+      const target = 54;
       let animationFrameId: number;
       
       const animate = (timestamp: number) => {
@@ -162,7 +201,9 @@ export default function App() {
   };
 
   return (
-    <div className="bg-[#050505] min-h-screen overflow-x-hidden overflow-y-auto relative scroll-smooth">
+    <div
+      className="bg-[#050505] min-h-screen overflow-x-hidden overflow-y-auto relative scroll-smooth"
+    >
       <PegasusBackground />
       
       {/* Loading Overlay */}
@@ -188,7 +229,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="min-h-screen flex flex-col items-center justify-center relative py-12">
+      <div className="min-h-screen flex flex-col items-center justify-center relative py-6 md:py-8">
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500">
           <div className="w-full max-w-sm bg-[#0a0a0a] border border-white/10 p-8 shadow-2xl">
@@ -216,12 +257,15 @@ export default function App() {
       <main 
         className="relative z-10 w-full max-w-4xl px-8 flex flex-col items-center transition-all duration-700 ease-in-out"
       >
-          <header className="text-center mb-16">
-            <h1 className="font-serif text-4xl font-light uppercase text-white mb-3 tracking-[0.2em]">
-              Pegasus
-            </h1>
-            <p className="text-[10px] tracking-[0.5em] text-white/50 uppercase">
-              Elite Technology Systems
+          <header className="text-center mb-8 md:mb-12">
+            <img
+              src={logoUrl}
+              alt="Pegasus"
+              className="mx-auto drop-shadow-lg -translate-y-2 w-[clamp(145px,31vw,391px)] h-auto max-w-[90vw] pointer-events-none select-none transition-opacity duration-700 ease-out"
+              style={{ opacity: logoOpacity }}
+            />
+            <p className="text-[clamp(0.6rem,1.15vw,0.9rem)] tracking-[0.42em] text-white/50 uppercase">
+              ABSOLUTE ENCRYPTION SYSTEMS
             </p>
           </header>
 
@@ -233,24 +277,27 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="w-full flex flex-col items-center space-y-8"
+                className="w-full flex flex-col items-center space-y-6"
               >
               {/* HUD Container */}
-              <div className="flex flex-col justify-center items-center w-full py-8 md:py-12 space-y-12 relative z-10 max-w-4xl mx-auto" style={{ opacity: hudOpacity }}>
-                <div className="flex flex-col items-center space-y-4">
-                  <h1 className="font-serif text-4xl md:text-6xl text-white font-light tracking-[0.3em] uppercase drop-shadow-lg text-center">
+              <div
+                className="flex flex-col justify-center items-center w-full py-4 md:py-8 space-y-8 relative z-10 max-w-4xl mx-auto"
+                style={{ opacity: hudOpacity, transition: 'opacity 700ms ease-out' }}
+              >
+                <div className="flex flex-col items-center space-y-3">
+                  <h1 className="font-serif text-white font-light uppercase drop-shadow-lg text-center whitespace-nowrap text-[clamp(3.1rem,8vw,6.8rem)] tracking-[0.18em] leading-none">
                     Coming Soon
                   </h1>
                 </div>
                 
-                <div className="w-full max-w-lg space-y-6 pt-6">
+                <div className="w-full max-w-lg space-y-4 translate-y-12 md:translate-y-20">
                   <div className="flex flex-col items-center w-full text-xs font-mono text-white/60 uppercase tracking-[0.2em] relative">
                     <span className="mb-2">Development Status</span>
                     <motion.span 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 3, duration: 0.8 }}
-                      className="text-white text-lg font-light"
+                      className="text-white text-[clamp(1rem,2.2vw,1.25rem)] font-light"
                     >
                       {Math.round(devProgress)}%
                     </motion.span>
@@ -640,18 +687,39 @@ export default function App() {
       
       <button 
         onClick={scrollToProjectInfo}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 hover:text-white transition-colors animate-bounce cursor-pointer p-4 z-50"
-        style={{ opacity: arrowOpacity, pointerEvents: arrowOpacity < 0.1 ? 'none' : 'auto' }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/30 hover:text-white transition-colors animate-bounce cursor-pointer p-6 z-50 focus:outline-none focus-visible:outline-none focus:ring-0"
+        style={{
+          opacity: arrowOpacity,
+          pointerEvents: arrowOpacity < 0.1 ? 'none' : 'auto',
+          transition: 'opacity 700ms ease-out',
+        }}
         aria-label="Scroll down for more info"
       >
-        <ChevronDown className="w-12 h-12" />
+        <ChevronDown className="w-16 h-16" />
       </button>
       </div>
 
-      <section id="project-info" className="min-h-screen flex flex-col items-center justify-center py-24 relative z-10">
+      <section
+        id="project-info"
+        ref={projectInfoRef}
+        className="min-h-screen flex flex-col items-center justify-center py-24 relative z-10"
+        style={{
+          opacity: projectInfoInView ? 1 : 0,
+          transform: projectInfoInView ? 'translateY(0px)' : 'translateY(24px)',
+          transition: 'opacity 700ms ease-out, transform 700ms ease-out',
+        }}
+      >
         <div className="absolute inset-0 bg-[#050505]/80 backdrop-blur-sm [mask-image:linear-gradient(to_bottom,transparent_0%,black_50%)]" />
         <div className="relative z-10 w-full max-w-7xl px-8">
-          <div className="text-center mb-16">
+          <div
+            className="text-center mb-16"
+            style={{
+              opacity: projectInfoInView ? 1 : 0,
+              transform: projectInfoInView ? 'translateY(0px)' : 'translateY(14px)',
+              transition: 'opacity 600ms ease-out, transform 600ms ease-out',
+              transitionDelay: projectInfoInView ? '50ms' : '0ms',
+            }}
+          >
             <h2 className="font-serif text-3xl md:text-5xl font-light uppercase text-white tracking-[0.2em] mb-4">
               Project Overview
             </h2>
@@ -660,7 +728,15 @@ export default function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            style={{
+              opacity: projectInfoInView ? 1 : 0,
+              transform: projectInfoInView ? 'translateY(0px)' : 'translateY(14px)',
+              transition: 'opacity 600ms ease-out, transform 600ms ease-out',
+              transitionDelay: projectInfoInView ? '100ms' : '0ms',
+            }}
+          >
             <div className="bg-white/5 border border-white/10 p-10 hover:bg-white/10 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-500 group text-center flex flex-col items-center">
               <Shield className="w-10 h-10 text-emerald-400 mb-6 group-hover:scale-110 transition-transform duration-500" />
               <h3 className="text-white font-serif text-2xl tracking-wider mb-4">AES-256 & E2E</h3>
